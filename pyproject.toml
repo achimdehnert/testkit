@@ -1,0 +1,64 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "iil-testkit"
+version = "0.1.0"
+description = "Shared Test Factory Package for all Platform Django repos"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Achim Dehnert", email = "achim.dehnert@iil.gmbh" }]
+keywords = ["django", "testing", "factory-boy", "pytest", "fixtures"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: Django",
+    "Framework :: Pytest",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing",
+]
+requires-python = ">=3.11"
+dependencies = [
+    "factory-boy>=3.3.0",
+]
+
+[project.optional-dependencies]
+django = [
+    "django>=4.2",
+    "pytest-django>=4.5",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-django>=4.5",
+    "django>=4.2",
+    "ruff",
+    "hatch",
+]
+
+[project.entry-points."pytest11"]
+testkit = "iil_testkit.plugin"
+
+[project.urls]
+Homepage = "https://github.com/achimdehnert/testkit"
+Repository = "https://github.com/achimdehnert/testkit"
+Issues = "https://github.com/achimdehnert/testkit/issues"
+Changelog = "https://github.com/achimdehnert/testkit/blob/main/CHANGELOG.md"
+
+[tool.hatch.version]
+path = "iil_testkit/__init__.py"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
