@@ -27,27 +27,123 @@ jobs:
             const existingLabels = context.payload.issue.labels.map(l => l.name);
             const labelsToAdd = [];
             const titleUpper = title.toUpperCase();
+
+            // --- Label detection ---
             if (titleUpper.startsWith('[BUG]')     && !existingLabels.includes('bug'))         labelsToAdd.push('bug');
             if (titleUpper.startsWith('[FEATURE]') && !existingLabels.includes('enhancement')) labelsToAdd.push('enhancement');
             if (titleUpper.startsWith('[TASK]')    && !existingLabels.includes('task'))        labelsToAdd.push('task');
             if (titleUpper.startsWith('[UC]')      && !existingLabels.includes('use-case'))    labelsToAdd.push('use-case');
             if (titleUpper.startsWith('[ADR]')     && !existingLabels.includes('adr'))         labelsToAdd.push('adr');
             if (labelsToAdd.length > 0) {
-              await github.rest.issues.addLabels({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, labels: labelsToAdd });
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                labels: labelsToAdd,
+              });
             }
+
             const allLabels = [...new Set([...existingLabels, ...labelsToAdd])];
-            let typeOption = null;
-            if      (allLabels.includes('bug'))         typeOption = 'Bug';
-            else if (allLabels.includes('enhancement')) typeOption = 'Feature';
-            else if (allLabels.includes('use-case'))    typeOption = 'Use Case';
-            else if (allLabels.includes('adr'))         typeOption = 'ADR';
-            else if (allLabels.includes('task'))        typeOption = 'Task';
+
+            // --- Type mapping (matches Project field options exactly) ---
+            let typeValue = null;
+            if      (allLabels.includes('bug'))         typeValue = 'Bug';
+            else if (allLabels.includes('enhancement')) typeValue = 'Feature';
+            else if (allLabels.includes('use-case'))    typeValue = 'Use Cse';
+            else if (allLabels.includes('adr'))         typeValue = 'ADR';
+            else if (allLabels.includes('task'))        typeValue = 'Task';
+
+            // --- Priority mapping (matches Project field options exactly) ---
+            let priorityValue = null;
+            if      (allLabels.includes('critical') || titleUpper.includes('[CRITICAL]')) priorityValue = 'Critical';
+            else if (allLabels.includes('high')     || allLabels.includes('bug'))         priorityValue = 'High';
+            else if (allLabels.includes('medium')   || allLabels.includes('enhancement')) priorityValue = 'Medium';
+            else                                                                           priorityValue = 'Low';
+
+            // --- Add to project and set fields ---
             const projectNumber = parseInt(process.env.PROJECT_NUMBER || '0');
-            if (projectNumber) {
-              try {
-                const pq = await github.graphql(`query($owner:String!,$number:Int!){user(login:$owner){projectV2(number:$number){id fields(first:20){nodes{...on ProjectV2SingleSelectField{id name options{id name}}}}}}}`, { owner: context.repo.owner, number: projectNumber });
-                const project = pq.user.projectV2;
-                const addResult = await github.graphql(`mutation($pid:ID!,$cid:ID!){addProjectV2ItemById(input:{projectId:$pid,contentId:$cid}){item{id}}}`, { pid: project.id, cid: issueNodeId });
-                console.log(`Added to project #${projectNumber}`);
-              } catch(e) { console.log(`Project error: ${e.message}`); }
+            if (!projectNumber) {
+              console.log('PROJECT_NUMBER not set — skipping project assignment');
+              return;
+            }
+
+            try {
+              // 1. Get project metadata (id + field ids + option ids)
+              const pq = await github.graphql(`
+                query($owner: String!, $number: Int!) {
+                  user(login: $owner) {
+                    projectV2(number: $number) {
+                      id
+                      fields(first: 30) {
+                        nodes {
+                          ... on ProjectV2SingleSelectField {
+                            id
+                            name
+                            options { id name }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              `, { owner: context.repo.owner, number: projectNumber });
+
+              const project = pq.user.projectV2;
+              const fields = project.fields.nodes.filter(f => f && f.name);
+
+              const typeField     = fields.find(f => f.name === 'Type');
+              const priorityField = fields.find(f => f.name === 'Priority');
+
+              // 2. Add issue to project
+              const addResult = await github.graphql(`
+                mutation($pid: ID!, $cid: ID!) {
+                  addProjectV2ItemById(input: { projectId: $pid, contentId: $cid }) {
+                    item { id }
+                  }
+                }
+              `, { pid: project.id, cid: issueNodeId });
+
+              const itemId = addResult.addProjectV2ItemById.item.id;
+              console.log(`Added issue #${issueNumber} to project #${projectNumber} as item ${itemId}`);
+
+              // 3. Set Type field
+              if (typeField && typeValue) {
+                const option = typeField.options.find(o => o.name === typeValue);
+                if (option) {
+                  await github.graphql(`
+                    mutation($pid: ID!, $iid: ID!, $fid: ID!, $oid: String!) {
+                      updateProjectV2ItemFieldValue(input: {
+                        projectId: $pid, itemId: $iid,
+                        fieldId: $fid,
+                        value: { singleSelectOptionId: $oid }
+                      }) { projectV2Item { id } }
+                    }
+                  `, { pid: project.id, iid: itemId, fid: typeField.id, oid: option.id });
+                  console.log(`Set Type = ${typeValue}`);
+                } else {
+                  console.log(`Type option '${typeValue}' not found. Available: ${typeField.options.map(o=>o.name).join(', ')}`);
+                }
+              }
+
+              // 4. Set Priority field
+              if (priorityField && priorityValue) {
+                const option = priorityField.options.find(o => o.name === priorityValue);
+                if (option) {
+                  await github.graphql(`
+                    mutation($pid: ID!, $iid: ID!, $fid: ID!, $oid: String!) {
+                      updateProjectV2ItemFieldValue(input: {
+                        projectId: $pid, itemId: $iid,
+                        fieldId: $fid,
+                        value: { singleSelectOptionId: $oid }
+                      }) { projectV2Item { id } }
+                    }
+                  `, { pid: project.id, iid: itemId, fid: priorityField.id, oid: option.id });
+                  console.log(`Set Priority = ${priorityValue}`);
+                } else {
+                  console.log(`Priority option '${priorityValue}' not found. Available: ${priorityField.options.map(o=>o.name).join(', ')}`);
+                }
+              }
+
+            } catch(e) {
+              console.log(`Project error: ${e.message}`);
             }
