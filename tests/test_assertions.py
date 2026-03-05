@@ -1,5 +1,6 @@
 # tests/test_assertions.py
 import pytest
+
 from iil_testkit.assertions import assert_htmx_response, assert_no_n_plus_one
 
 
