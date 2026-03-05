@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: "Upload target"
-        required: true
-        default: "testpypi"
+        description: "Upload target (pypi or testpypi)"
+        required: false
+        default: "pypi"
         type: choice
         options:
           - pypi
@@ -78,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'pypi')
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'pypi' || github.event.inputs.target == ''))
     environment:
       name: pypi
       url: https://pypi.org/project/iil-testkit/
