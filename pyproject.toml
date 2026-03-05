@@ -20,6 +20,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Testing",
+    "Typing :: Typed",
 ]
 requires-python = ">=3.11"
 dependencies = [
@@ -29,18 +30,23 @@ dependencies = [
 [project.optional-dependencies]
 django = [
     "django>=4.2",
-    "pytest-django>=4.5",
+    "pytest-django>=4.8",
 ]
 dev = [
-    "pytest>=7.0",
-    "pytest-django>=4.5",
+    "pytest>=8.0",
+    "pytest-django>=4.8",
+    "pytest-cov>=5.0",
     "django>=4.2",
     "ruff",
     "hatch",
+    "mypy",
+    "django-stubs>=5.0",
 ]
 
 [project.entry-points."pytest11"]
-testkit = "iil_testkit.plugin"
+# Auto-registers the naming convention plugin when iil-testkit is installed.
+# No manual conftest.py needed. Disable globally with --relax-naming.
+iil-testkit = "iil_testkit.plugin"
 
 [project.urls]
 Homepage = "https://github.com/achimdehnert/testkit"
@@ -50,6 +56,9 @@ Changelog = "https://github.com/achimdehnert/testkit/blob/main/CHANGELOG.md"
 
 [tool.hatch.version]
 path = "iil_testkit/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["iil_testkit"]
 
 [tool.ruff]
 line-length = 100
@@ -62,3 +71,20 @@ select = ["E", "F", "I", "UP"]
 DJANGO_SETTINGS_MODULE = "tests.settings"
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
+# Naming convention mode: "error" (default) or "warn"
+# Override per repo: iil_naming_mode = "warn"
+iil_naming_mode = "error"
+addopts = "--cov=iil_testkit --cov-report=term-missing --cov-fail-under=80"
+
+[tool.coverage.run]
+source = ["iil_testkit"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+ignore_missing_imports = true
