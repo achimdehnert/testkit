@@ -73,13 +73,12 @@ known-first-party = ["iil_testkit"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["I001"]
 "tests/*.py" = ["I001"]
+"plugin_tests/**" = ["I001"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
-# Naming convention mode: "error" (default) or "warn"
-# Override per repo: iil_naming_mode = "warn"
 iil_naming_mode = "error"
 addopts = "--cov=iil_testkit --cov-report=term-missing --cov-fail-under=80"
 
