@@ -1,9 +1,6 @@
 # tests/plugin/test_should_plugin_enforce_naming.py
 # Uses pytester to test the iil_testkit naming convention plugin
 # in a completely isolated subprocess (no Django context).
-import pytest
-
-
 pytest_plugins = ["pytester"]
 
 

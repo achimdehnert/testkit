@@ -1,5 +1,4 @@
 # tests/test_plugin.py — Django-context tests only (no pytester)
-import pytest
 
 
 def test_should_register_no_naming_convention_marker(pytestconfig):

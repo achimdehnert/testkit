@@ -18,7 +18,6 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from django.http import HttpResponse
-    from django.test import Client
 
 __all__ = [
     "assert_redirects_to_login",
@@ -28,7 +27,7 @@ __all__ = [
 ]
 
 
-def assert_redirects_to_login(response: "HttpResponse", next_url: str | None = None) -> None:
+def assert_redirects_to_login(response: HttpResponse, next_url: str | None = None) -> None:
     """Assert that the response redirects to the login page.
 
     Args:
@@ -53,7 +52,7 @@ def assert_redirects_to_login(response: "HttpResponse", next_url: str | None = N
         )
 
 
-def assert_htmx_response(response: "HttpResponse", status_code: int = 200) -> None:
+def assert_htmx_response(response: HttpResponse, status_code: int = 200) -> None:
     """Assert response is a valid HTMX partial (no full HTML page wrapper).
 
     A valid HTMX partial must not contain <html>, <head>, or <body> tags,
@@ -101,7 +100,7 @@ def assert_no_n_plus_one(queries: list, threshold: int = 5) -> None:
     )
 
 
-def assert_form_error(response: "HttpResponse", field: str, message: str) -> None:
+def assert_form_error(response: HttpResponse, field: str, message: str) -> None:
     """Assert that a form in the response contains a specific field error.
 
     Args:
