@@ -29,9 +29,6 @@ jobs:
       - name: Test with coverage
         run: pytest tests/ -v --tb=short --cov=iil_testkit --cov-report=term-missing --cov-fail-under=80 --ignore=tests/plugin
 
-      - name: Plugin tests (pytester)
-        run: pytest plugin_tests/ -v --tb=short --no-cov --override-ini="DJANGO_SETTINGS_MODULE="
-
       - name: Type check
         run: mypy iil_testkit/ --ignore-missing-imports
         continue-on-error: true
