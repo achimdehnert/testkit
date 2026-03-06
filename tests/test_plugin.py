@@ -2,12 +2,12 @@
 import warnings
 from unittest.mock import MagicMock
 
+import pytest
+
 from iil_testkit.plugin import pytest_collection_modifyitems
 
 
 def _make_item(name, marker=None):
-    """Build a minimal mock pytest.Function item."""
-    import pytest
     item = MagicMock(spec=pytest.Function)
     item.originalname = name
     item.name = name
@@ -43,39 +43,44 @@ def test_should_read_iil_naming_mode_ini(pytestconfig):
 
 
 # ---------------------------------------------------------------------------
-# pytest_collection_modifyitems — error mode
+# pytest_collection_modifyitems — direct unit tests
 # ---------------------------------------------------------------------------
 
 def test_should_pass_for_correctly_named_item():
     config = _make_config(mode="error", relax=False)
     items = [_make_item("test_should_do_something")]
-    pytest_collection_modifyitems(config, items)  # no exception
+    pytest_collection_modifyitems(config, items)
 
 
 def test_should_fail_for_bad_name_in_error_mode():
-    import pytest
     config = _make_config(mode="error", relax=False)
-    items = [_make_item("test_bad_name")]
-    with pytest.raises(Exception):
+    items = [_make_item("test_should_bad_name")]
+    pytest_collection_modifyitems(config, items)
+
+
+def test_should_raise_on_violation_in_error_mode():
+    config = _make_config(mode="error", relax=False)
+    items = [_make_item("test_violating_name")]
+    with pytest.raises(BaseException, match="test_should_"):
         pytest_collection_modifyitems(config, items)
 
 
 def test_should_skip_check_when_relax_naming_flag_set():
     config = _make_config(relax=True)
-    items = [_make_item("test_bad_name")]
-    pytest_collection_modifyitems(config, items)  # no exception
+    items = [_make_item("test_violating_name")]
+    pytest_collection_modifyitems(config, items)
 
 
 def test_should_skip_marked_item():
     marker = MagicMock()
     config = _make_config(mode="error", relax=False)
     items = [_make_item("test_legacy", marker=marker)]
-    pytest_collection_modifyitems(config, items)  # no exception
+    pytest_collection_modifyitems(config, items)
 
 
 def test_should_warn_for_bad_name_in_warn_mode():
     config = _make_config(mode="warn", relax=False)
-    items = [_make_item("test_bad_name")]
+    items = [_make_item("test_violating_name")]
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         pytest_collection_modifyitems(config, items)
@@ -84,8 +89,9 @@ def test_should_warn_for_bad_name_in_warn_mode():
 
 
 def test_should_include_violation_count_in_message():
-    import pytest
-    config = _make_config(mode="error", relax=False)
-    items = [_make_item("test_bad_one"), _make_item("test_bad_two")]
-    with pytest.raises(Exception, match="2 test"):
+    config = _make_config(mode="warn", relax=False)
+    items = [_make_item("test_violating_one"), _make_item("test_violating_two")]
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
         pytest_collection_modifyitems(config, items)
+    assert "2 test" in str(caught[0].message)

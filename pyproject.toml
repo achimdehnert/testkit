@@ -44,8 +44,6 @@ dev = [
 ]
 
 [project.entry-points."pytest11"]
-# Auto-registers the naming convention plugin when iil-testkit is installed.
-# No manual conftest.py needed. Disable globally with --relax-naming.
 iil-testkit = "iil_testkit.plugin"
 
 [project.urls]
@@ -84,11 +82,12 @@ addopts = "--cov=iil_testkit --cov-report=term-missing --cov-fail-under=80"
 
 [tool.coverage.run]
 source = ["iil_testkit"]
-omit = ["tests/*"]
+omit = ["tests/*", "iil_testkit/contrib/*"]
 
 [tool.coverage.report]
 show_missing = true
 fail_under = 80
+omit = ["iil_testkit/contrib/*"]
 
 [tool.mypy]
 python_version = "3.11"
