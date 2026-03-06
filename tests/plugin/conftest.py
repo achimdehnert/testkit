@@ -1,6 +1,5 @@
 # tests/plugin/conftest.py
-# Isolated conftest WITHOUT Django — required for pytester fixture to work.
-# pytester cannot run inside a Django-enabled pytest session.
-import os
-
-os.environ.pop("DJANGO_SETTINGS_MODULE", None)
+# pytester runs each test in a subprocess — fully isolated from Django.
+# The parent pytest session has Django loaded, but pytester subprocesses are clean.
+# Declaring pytest_plugins here makes pytester available in this directory.
+pytest_plugins = ["pytester"]
