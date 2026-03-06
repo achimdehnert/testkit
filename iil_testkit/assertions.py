@@ -73,8 +73,8 @@ def assert_htmx_response(response: "HttpResponse", status_code: int = 200) -> No
     content = response.content.decode(errors="replace")
     for forbidden_tag in ("<html", "<head", "<body"):
         assert forbidden_tag not in content, (
-            f"HTMX partial must not contain {forbidden_tag!r} — "
-            f"full page was returned instead of a fragment"
+            f"HTMX partial must not contain full <html> page — "
+            f"found {forbidden_tag!r} tag, a fragment was expected"
         )
 
 
