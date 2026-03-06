@@ -33,7 +33,7 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Run tests
-        run: pytest tests/ -v --tb=short
+        run: pytest tests/ -v --tb=short --no-cov
 
   build:
     name: Build distribution
