@@ -39,3 +39,11 @@ def test_should_provide_staff_client_fixture(staff_client, staff_user):
 @pytest.mark.django_db
 def test_should_auth_client_be_distinct_from_api_client(auth_client, api_client):
     assert auth_client is not api_client
+
+
+def test_should_skip_drf_fixtures_when_not_installed(pytestconfig):
+    """drf_api_client and drf_auth_client skip gracefully when DRF not installed."""
+    try:
+        import rest_framework  # noqa: F401
+    except ImportError:
+        pass  # expected in test env without DRF

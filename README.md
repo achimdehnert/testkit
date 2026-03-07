@@ -2,62 +2,109 @@
 
 **Shared Test Factory Package for all Platform Django repos** — [ADR-100](https://github.com/achimdehnert/platform/blob/main/docs/adr/ADR-100-iil-testkit-shared-test-factory-package.md)
 
+[![PyPI](https://img.shields.io/pypi/v/iil-testkit)](https://pypi.org/project/iil-testkit/)
+
 ## Installation
 
 ```bash
 pip install iil-testkit
 ```
 
-Or in `requirements-test.txt`:
+In `requirements-test.txt`:
 ```
-iil-testkit>=0.1.0
+iil-testkit>=0.2.0
 ```
 
-## Usage
+With DRF support:
+```
+iil-testkit[drf]>=0.2.0
+```
 
-### Factories
+## Quick Setup
+
+In your `tests/conftest.py`:
+```python
+pytest_plugins = ["iil_testkit.fixtures"]
+```
+
+## Factories
 
 ```python
 # tests/factories.py — import shared, extend repo-specific
-from iil_testkit.factories import UserFactory
+from iil_testkit.factories import UserFactory  # noqa: F401
 import factory
 
-class BookProjectFactory(factory.django.DjangoModelFactory):
+class MyModelFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = "bfagent.BookProjects"
+        model = "myapp.MyModel"
     user = factory.SubFactory(UserFactory)
-    title = factory.Sequence(lambda n: f"Book {n}")
 ```
 
-### Fixtures
+For multi-tenant repos:
+```python
+from iil_testkit.contrib.tenants import TenantFactory  # noqa: F401
+```
+
+## Fixtures
+
+| Fixture | Description |
+|---|---|
+| `db_user` | Standard active user, saved to DB |
+| `staff_user` | User with `is_staff=True` |
+| `admin_user` | User with `is_superuser=True` |
+| `api_client` | Unauthenticated Django `Client` |
+| `auth_client` | Django `Client` logged in as `db_user` |
+| `staff_client` | Django `Client` logged in as `staff_user` |
+| `drf_api_client` | Unauthenticated DRF `APIClient` (skips if DRF missing) |
+| `drf_auth_client` | DRF `APIClient` authenticated as `db_user` (skips if DRF missing) |
 
 ```python
 def test_should_view_dashboard(auth_client):
     response = auth_client.get("/dashboard/")
     assert response.status_code == 200
-```
 
-Available fixtures: `db_user`, `staff_user`, `admin_user`, `api_client`, `auth_client`, `staff_client`
-
-### Assertion Helpers
-
-```python
-from iil_testkit.assertions import assert_redirects_to_login, assert_htmx_response
-
-def test_should_redirect_unauthenticated(api_client):
+def test_should_require_auth(api_client):
+    from iil_testkit.assertions import assert_redirects_to_login
     response = api_client.get("/protected/")
     assert_redirects_to_login(response)
 ```
 
-### Naming Convention (ADR-057)
+## Assertion Helpers
 
-Auto-registered pytest plugin warns when test functions don't follow `test_should_*`:
+```python
+from iil_testkit.assertions import (
+    assert_redirects_to_login,
+    assert_htmx_response,
+    assert_no_n_plus_one,
+    assert_form_error,
+)
+```
+
+| Helper | Description |
+|---|---|
+| `assert_redirects_to_login(response)` | Asserts 301/302 to `/login` or `/accounts/login` |
+| `assert_htmx_response(response)` | Asserts no full `<html>` page in HTMX partial |
+| `assert_no_n_plus_one(queries, threshold=5)` | Asserts query count within threshold |
+| `assert_form_error(response, field, message)` | Asserts form field error in context |
+
+## Naming Convention Plugin (ADR-057)
+
+Auto-registered when installed. All test functions must follow `test_should_*`:
 
 ```
-PytestWarning: Naming convention: 'test_login' should start with 'test_should_'
+Naming convention violations — 1 test(s) must start with 'test_should_':
+  tests/test_foo.py::test_login
 ```
 
-Suppress with: `pytest --no-naming-check`
+Opt-out per test:
+```python
+@pytest.mark.no_naming_convention
+def test_legacy_name(): ...
+```
+
+Opt-out globally: `pytest --relax-naming`
+
+Warn instead of error: `iil_naming_mode = "warn"` in `pyproject.toml`
 
 ## Architecture
 
