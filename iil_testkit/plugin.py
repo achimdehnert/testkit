@@ -3,7 +3,7 @@
 
 Configuration in pytest.ini / pyproject.toml:
     [tool.pytest.ini_options]
-    iil_naming_mode = "error"   # "error" (default) | "warn"
+    iil_naming_mode = "warn"    # "warn" (default) | "error"
 
 Opt-out per test:
     @pytest.mark.no_naming_convention
@@ -11,7 +11,12 @@ Opt-out per test:
 
 Opt-out globally:
     pytest --relax-naming
+
+Note: "error" mode uses pytest.UsageError (not pytest.fail) to avoid
+INTERNALERROR in pytest_collection_modifyitems.
 """
+import warnings
+
 import pytest
 
 __all__ = ["pytest_collection_modifyitems", "pytest_addoption", "pytest_configure"]
@@ -34,8 +39,8 @@ def pytest_addoption(parser):
     try:
         parser.addini(
             "iil_naming_mode",
-            default="error",
-            help="Naming convention mode: 'error' (default) or 'warn'",
+            default="warn",
+            help="Naming convention mode: 'warn' (default) or 'error'",
         )
     except ValueError:
         pass
@@ -59,7 +64,7 @@ def pytest_collection_modifyitems(config, items):
     if not violations:
         return
 
-    mode = config.getini("iil_naming_mode") or "error"
+    mode = config.getini("iil_naming_mode") or "warn"
     msg = (
         f"Naming convention violations (ADR-057 §2.3) — "
         f"{len(violations)} test(s) must start with 'test_should_':\n"
@@ -69,7 +74,6 @@ def pytest_collection_modifyitems(config, items):
     )
 
     if mode == "error":
-        pytest.fail(msg, pytrace=False)
+        raise pytest.UsageError(msg)
     else:
-        import warnings
-        warnings.warn(msg, stacklevel=2)
+        warnings.warn(msg, UserWarning, stacklevel=2)

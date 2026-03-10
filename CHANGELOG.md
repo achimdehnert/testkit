@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.2.0 (2026-03-07)
+## v0.2.0 (2026-03-10)
 
 ### Added
 - `drf_api_client` fixture — unauthenticated DRF `APIClient` (auto-skips if DRF not installed)
@@ -8,8 +8,17 @@
 - `[drf]` optional dependency group in `pyproject.toml`
 - `CHANGELOG.md`
 
+### Fixed
+- **BREAKING BUG**: `plugin.py` used `pytest.fail()` in `pytest_collection_modifyitems` which
+  caused `INTERNALERROR` (not a normal test failure) when naming violations were found
+- Changed default `iil_naming_mode` from `"error"` to `"warn"` — naming convention is now
+  advisory by default; opt-in to `"error"` mode explicitly when all tests follow `test_should_*`
+- `pytest.fail()` replaced with `pytest.UsageError()` in error-mode to produce a proper
+  collection error instead of INTERNALERROR
+
 ### Changed
 - All Django-Hub repos should now use `iil-testkit>=0.2.0` in `requirements-test.txt`
+- Repos with legacy `test_*` naming will get a warning, not a hard failure
 
 ## v0.1.0 (2026-03-06)
 
